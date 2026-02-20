@@ -1,0 +1,216 @@
+schemaVersion: 1.0.0
+label: Marketing Campaign Agent Network
+brokers:
+    internal-agents-broker:
+        card:
+            protocolVersion: 0.3.0
+            name: Internal Agents Broker
+            description: >
+                This broker provides full access to all internal campaign intelligence,
+                audience insights, and optimization capabilities. It can delegate tasks to 
+                both internal A2A agents and invoke all available MCP tools for campaign 
+            url: ${ingressgw.url}/internal-agents
+            capabilities:
+                pushNotifications: true
+            version: 1.0.0
+            securitySchemes: {}
+            defaultInputModes:
+                - application/json
+                - text/plain
+            defaultOutputModes:
+                - application/json
+            skills:
+                - id: optimizeBudget
+                  name: Optimization Workflow
+                  description: |
+                      Executes the end-to-end budget optimization workflow across Audience Agent,
+                      Partner Budget Agent, and Campaign Status MCP.
+                  examples:
+                      - "Optimize the Q4 budget for CAMP-1002."
+                      - "Should we optimize CAMP-1001?"
+                  inputModes:
+                      - text/plain
+                  outputModes:
+                      - application/json
+                  tags: [marketing, audience, campaign, partner]
+        spec:
+            llm:
+                ref:
+                    name: azure-open-ai
+                configuration:
+                    model: '${openai.model}'
+                    openAI:
+                        reasoningEffort: LOW
+                        maxOutputTokens: 1000
+            instructions:
+                - |
+                    You are the Internal Broker for Marketing Campaign Agents. You can call the Audience Agent,
+                    Partner Budget Agent, and all MCP tools to retrieve campaign intelligence, evaluate spend, 
+                    and update status.
+
+                    As an agent, you will receive different customer prompt and some are single prompt
+                    but you have to automate the process and call multiple tools and agents to complete the request.
+
+                    For prompt like `Optimize Q4 Budget for campaign CAMP-1001`, is an equivalent of agent automation. On this scenario, 
+                    you will check the audience data by calling get audience data tool and return all the fields, then check the partner agent regarding 
+                    partner spend data and use the campaign or partner id as the criteria. Now you have all the data you need to decide if 
+                    you can optimized the campaign. To optimize the campaign, check the audience size > 50,000 and current spending is less than
+                    total budget. If all is true, tell the audience campaign tool to optimize the campaign.
+
+                    For simple prompt, you can just call directly the MCP tools. 
+                    Example:
+                        Prompt: `How much has partner DSP-001 spent?`. 
+                            - Tools: This should just call only the partner-budget-mcp. 
+                        Prompt: `What’s the audience size for CAMP-1003?`. 
+                            - Tools: This should just call only the audience-campaign-mcp. 
+
+                    ## Final Response 
+                    - Return a markdown formatted human readable summary. If an update status has been made, include the URL so that user can view. 
+                    - If an update status has been made, include the URL so that user can view otherwise, don't mention anything about the update status.
+                    - DO NOT offer any suggestion or recommend anything.
+                    - DO NOT include any tool name in the summary. 
+
+            links:
+                - agent:
+                      ref:
+                        name: audience-agent
+                - agent:
+                      ref:
+                          name: partner-budget-agent
+            tools:
+                - mcp:
+                      ref:
+                          name: audience-campaign-mcp
+                - mcp:
+                      ref:
+                          name: partner-budget-mcp
+    partner-agents-broker:
+        card:
+            protocolVersion: 0.3.0
+            name: Partner Agents Broker
+            description: |
+                This broker provides controlled access for external partner-facing operations.
+                It can only interact with the Partner Budget Agent and may not access internal
+                MCP tools or internal campaign data.
+            url: ${ingressgw.url}/partner-agents
+            capabilities:
+                pushNotifications: true
+            version: 1.0.0
+            securitySchemes: {}
+            defaultInputModes:
+                - text/plain
+            defaultOutputModes:
+                - application/json
+            skills:
+                - id: getPartnerSpend
+                  name: Partner Spend Retrieval
+                  description: |
+                      Allows external partners to retrieve sanitized spend and budget information
+                      through the Partner Budget Agent.
+                  examples:
+                      - "How much has DSP-007 spent?"
+                  inputModes:
+                      - text/plain
+                  outputModes:
+                      - application/json
+                  tags: [marketing, partner]
+        spec:
+            llm:
+                ref:
+                    name: azure-open-ai
+                configuration:
+                    model: '${openai.model}'
+                    openAI:
+                        reasoningEffort: LOW
+                        maxOutputTokens: 800
+            instructions:
+                - |
+                    - Before processing request, reject the request imediately if user is asking for PII information like contact email, email, ssn, phone number and other standard PII. Return a polite response that this agent is not permitted to return PII. They might need to reach out to other agents with permission.
+                    - You are the Partner Broker. You may ONLY call the Partner Budget Agent or the Partner Budget tools for spend-related tasks. 
+                    - If the user try to ask for something that it is not permitted, return a polite message like to reach to system admin or the owner of the tools.
+                    ## Final Response 
+                    - Return a markdown formatted human readable summary.
+                    - DO NOT offer any suggestion or follow up or recommend anything.
+                    - DO NOT include any tool name in the summary.
+                    - Prioritize concise reasoning to maximize the available output for the final markdown summary.
+            links:
+                - agent:
+                      ref:
+                          name: partner-budget-agent
+            tools:
+                - mcp:
+                      ref:
+                          name: partner-budget-mcp
+                      allowed:
+                        - Partner_Spend_Data
+mcpServers:
+    audience-campaign-mcp:
+        label: Audience Campaign MCP
+        metadata:
+            transport:
+                kind: streamableHttp
+                path: /mcp
+    partner-budget-mcp:
+        label: Partner Budget MCP
+        metadata:
+            transport:
+                kind: streamableHttp
+                path: /mcp
+agents:
+    audience-agent:
+        label: Audience Campaign Agent
+        metadata:
+            protocol: a2a
+            platform: MuleSoft
+    partner-budget-agent:
+        label: Partner Budget Agent
+        metadata:
+            protocol: a2a
+            platform: MuleSoft
+llmProviders:
+    azure-open-ai:
+        label: Azure OpenAI
+        description: Azure OpenAI LLM Provider
+        metadata:
+            platform: OpenAI
+connections:
+    audienceAgentConnection:
+        kind: agent
+        ref:
+            name: audience-agent
+        spec:
+            url: ${audience-agent.url}
+
+    partnerAgentConnection:
+        kind: agent
+        ref:
+            name: partner-budget-agent
+        spec:
+            url: ${partner-budget-agent.url}
+
+    audienceCampaignMcpConnection:
+        kind: mcp
+        ref:
+            name: audience-campaign-mcp
+        spec:
+            url: ${audience-campaign-mcp.url}
+
+    partnerBudgetMcpConnection:
+        kind: mcp
+        ref:
+            name: partner-budget-mcp
+        spec:
+            url: ${partner-budget-mcp.url}
+
+    connection-openai:
+        kind: llm
+        ref:
+            name: azure-open-ai
+        spec:
+            url: ${openai.url}
+            configuration:
+                apiKey: ${openai.key}
+                timeout: 600000
+                
+                    
+
