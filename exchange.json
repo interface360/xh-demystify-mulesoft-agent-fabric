@@ -1,0 +1,76 @@
+{
+  "main": "agent-network.yaml",
+  "name": "Marketing Campaign Agent Network",
+  "classifier": "agent-network",
+  "organizationId": ""<REPLACE_WITH_YOUR_ANYPOINT_ORG_ID>",
+  "descriptorVersion": "1.0.0",
+  "tags": [],
+  "metadata": {
+    "variables": {
+      "openai": {
+        "url": {
+          "description": "Open AI URL",
+          "default": "https://openai-proxy.demos.mulesoft.com/openai/v1",
+          "secret": false
+        },
+        "key": {
+          "description": "Customer OpenAI API key (ie: Azure)",
+          "default": ""
+        },
+        "model": {
+          "description": "Customer OpenAI LLM Model Name",
+          "default": "gpt-5-mini",
+          "secret": false
+        }
+      },
+      "gemini": {
+        "url": {
+          "description": "Gemini AI URL",
+          "default": "https://generativelanguage.googleapis.com/v1beta/openai",
+          "secret": false
+        },
+        "key": {
+          "description": "Customer Gemini API key",
+          "default": ""
+        },
+        "model": {
+          "description": "Customer Gemini LLM Model Name",
+          "default": "gemini-2.0-flash",
+          "secret": false
+        }
+      },
+      "audience-agent": {
+        "url": {
+          "description": "Audience Campaign Agent",
+          "default": "https://maf-a2a-audience-partner-xz7f5w.k9hbck.usa-e1.cloudhub.io/audience-agent/",
+          "secret": false
+        }
+      },
+      "partner-budget-agent": {
+        "url": {
+          "description": "Audience Campaign Agent",
+          "default": "https://maf-a2a-audience-partner-xz7f5w.k9hbck.usa-e1.cloudhub.io/partner-budget-agent/",
+          "secret": false
+        }
+      },
+      "audience-campaign-mcp": {
+        "url": {
+          "description": "Audience Campaign MCP Tool",
+          "default": "https://maf-mcp-audience-campaign-xz7f5w.k9hbck.usa-e1.cloudhub.io/audience-campaign/",
+          "secret": false
+        }
+      },
+      "partner-budget-mcp": {
+        "url": {
+          "description": "Partner Budget MCP Tool",
+          "default": "https://maf-mcp-audience-campaign-xz7f5w.k9hbck.usa-e1.cloudhub.io/partner-budget/",
+          "secret": false
+        }
+      }
+    }
+  },
+  "dependencies": [],
+  "groupId": "<REPLACE_WITH_YOUR_ANYPOINT_ORG_ID>",
+  "assetId": "marketing-campaign-agent-network",
+  "version": "1.0.0"
+}
